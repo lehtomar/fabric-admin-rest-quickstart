@@ -1,0 +1,10 @@
+# Local secrets / token caches
+*.env
+*.secret
+.env.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+.vscode/

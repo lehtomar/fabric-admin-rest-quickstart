@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Power BI / Fabric Admin REST API – Setup &amp; Test Guide</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #475569;
+    --line: #e2e8f0;
+    --accent: #f2c811;       /* Power BI yellow */
+    --ok: #16a34a;
+    --warn: #d97706;
+    --err: #dc2626;
+    --code-bg: #0b1220;
+    --code-ink: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, Inter, Roboto, sans-serif;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  header {
+    background: var(--bg);
+    color: #fff;
+    padding: 36px 24px 28px;
+    border-bottom: 4px solid var(--accent);
+  }
+  header .wrap { max-width: 960px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 28px; }
+  header p { margin: 0; color: #cbd5e1; }
+  header .meta {
+    margin-top: 14px; display: flex; gap: 14px; flex-wrap: wrap;
+    font-size: 13px; color: #94a3b8;
+  }
+
+  main {
+    max-width: 960px;
+    margin: -20px auto 60px;
+    padding: 0 24px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin: 18px 0;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .card h2 {
+    margin: 0 0 10px;
+    font-size: 19px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card h3 { font-size: 15px; margin: 16px 0 6px; }
+  .card p, .card li { color: #1e293b; }
+  .card.tldr { border-left: 4px solid var(--accent); }
+  .card.warn { border-left: 4px solid var(--warn); background: #fffbeb; }
+  .card.ok   { border-left: 4px solid var(--ok); }
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg); color: #fff; font-size: 14px; font-weight: 600;
+  }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li {
+    padding: 4px 0 4px 28px;
+    position: relative;
+  }
+  ul.checklist li::before {
+    content: "☐"; position: absolute; left: 0; top: 2px;
+    font-size: 16px; color: var(--muted);
+  }
+  ul.checklist li.done::before { content: "✅"; }
+  ul.checklist li.bad::before { content: "❌"; }
+
+  code, pre {
+    font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 13px;
+  }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px; border-radius: 5px;
+    color: #0f172a;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    padding: 14px 16px; border-radius: 10px; overflow-x: auto;
+    margin: 8px 0 4px;
+    position: relative;
+  }
+  pre .copy {
+    position: absolute; top: 8px; right: 8px;
+    background: #1e293b; color: #e2e8f0;
+    border: 1px solid #334155; border-radius: 6px;
+    font-size: 11px; padding: 4px 8px; cursor: pointer;
+  }
+  pre .copy:hover { background: #334155; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { background: #f8fafc; color: var(--muted); font-weight: 600; }
+
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    background: #e2e8f0; color: #334155;
+  }
+  .tag.user { background: #dbeafe; color: #1e40af; }
+  .tag.sp   { background: #fee2e2; color: #991b1b; }
+  .tag.ok   { background: #dcfce7; color: #166534; }
+
+  a { color: #1d4ed8; }
+  a:hover { text-decoration: underline; }
+
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+
+  footer {
+    max-width: 960px; margin: 24px auto 40px; padding: 0 24px;
+    color: var(--muted); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Power BI / Fabric Admin REST API – Setup &amp; Test Guide</h1>
+    <p>Step-by-step verification of the permissions required to call <code>/admin/*</code> endpoints.</p>
+    <div class="meta">
+      <span>🎯 Goal: confirm admin <strong>read</strong> and <strong>update</strong> calls succeed (no more 401 / 404)</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- TL;DR -->
+  <section class="card tldr">
+    <h2>🟡 TL;DR — easiest path</h2>
+    <p>
+      You don't need a service principal. Sign in as <strong>yourself</strong> with
+      <code>az login</code>, make sure you have the
+      <strong>Fabric administrator</strong> Entra role active, and call the API as
+      a delegated user. Skip the SP / security group / tenant toggle dance entirely.
+    </p>
+    <p style="margin-bottom: 0;">
+      Use a service principal only when you need <em>unattended</em> automation
+      (scheduled jobs, CI/CD, Azure Functions, etc.).
+    </p>
+  </section>
+
+  <!-- Prereqs -->
+  <section class="card">
+    <h2>📋 Prerequisites</h2>
+
+    <h3>Accounts &amp; roles</h3>
+    <ul class="checklist">
+      <li>Microsoft Entra account in the target tenant with a Power BI / Fabric license.</li>
+      <li>
+        <strong>Fabric administrator</strong> role assigned in the
+        <a href="https://entra.microsoft.com" target="_blank">Entra admin center</a>
+        → <em>Roles and administrators</em> → <em>Fabric administrator</em> →
+        <em>Add assignment</em>.
+        <br />
+        <span class="tag">Alternative</span> the legacy "Power BI administrator" role also works.
+        <br />
+        <span class="tag" style="background:#fef3c7;color:#92400e;">PIM</span>
+        if the role is PIM-eligible, it must be <strong>activated</strong> (not just eligible)
+        and you must <strong>sign out / sign back in</strong> before the token sees it.
+      </li>
+      <li>Not a guest / B2B user in the tenant.</li>
+    </ul>
+
+    <h3>Tools</h3>
+    <ul class="checklist">
+      <li>Windows PowerShell 5.1 <em>or</em> PowerShell 7+ (<code>pwsh</code>).</li>
+      <li>
+        <strong>Azure CLI</strong> – <a href="https://learn.microsoft.com/cli/azure/install-azure-cli-windows" target="_blank">install</a>,
+        then verify with <code>az --version</code>.
+      </li>
+      <li>The scripts from <code>examples/</code>.</li>
+    </ul>
+
+    <h3>What you do <em>not</em> need (for user mode)</h3>
+    <ul class="checklist">
+      <li class="bad">App registration / client ID / client secret</li>
+      <li class="bad">Entra security group</li>
+      <li class="bad">Tenant settings toggles for service principals</li>
+      <li class="bad">Power BI API permissions in an app registration</li>
+    </ul>
+  </section>
+
+  <!-- Step 1 -->
+  <section class="card">
+    <h2><span class="step-num">1</span> Sign in to the target tenant</h2>
+    <p>Replace <code>&lt;tenant-id&gt;</code> with your Microsoft Entra tenant ID.</p>
+    <pre><button class="copy">copy</button><code>az login --tenant &lt;tenant-id&gt;
+az account show --query "{user:user.name, tenant:tenantId}" -o table</code></pre>
+    <p>Expected: your UPN and the tenant ID you intended to sign into.</p>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="card">
+    <h2><span class="step-num">2</span> Run the diagnostic test</h2>
+    <p>This probes four layers in order and tells you exactly where access breaks.</p>
+    <pre><button class="copy">copy</button><code>cd examples
+.\Test-AdminApiAccess.ps1</code></pre>
+    <p>Add <code>-TestWorkspaceId &lt;guid&gt;</code> at the end to also probe a write call:</p>
+    <pre><button class="copy">copy</button><code>.\Test-AdminApiAccess.ps1 -TestWorkspaceId &lt;some-workspace-guid&gt;</code></pre>
+
+    <h3>What each step verifies</h3>
+    <table>
+      <thead><tr><th>#</th><th>Layer</th><th>Endpoint</th><th>If it fails…</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Token</td><td>—</td><td>Re-run <code>az login</code>.</td></tr>
+        <tr><td>2</td><td>Basic Power BI API</td><td><code>/groups</code></td><td>User lacks Power BI license or signed into wrong tenant.</td></tr>
+        <tr><td>3a</td><td>Read-only Admin API</td><td><code>/admin/groups</code></td><td>Assign <strong>Fabric administrator</strong> role, then sign out / sign back in.</td></tr>
+        <tr><td>3b</td><td>Update Admin API</td><td><code>POST /admin/groups/{id}/users</code></td><td>Same role, PIM activation, ~15&nbsp;min propagation.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="card">
+    <h2><span class="step-num">3</span> Run the live demo</h2>
+    <p>Calls 5 different admin APIs and prints both the output and the URLs called:</p>
+    <pre><button class="copy">copy</button><code>.\Demo-AdminApiCalls.ps1 -Top 5</code></pre>
+
+    <h3>APIs invoked</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td>GET</td><td><code>/admin/groups?$top=N&amp;$expand=users</code></td><td>Workspaces + members</td></tr>
+        <tr><td>GET</td><td><code>/admin/datasets?$top=N</code></td><td>Datasets across tenant</td></tr>
+        <tr><td>GET</td><td><code>/admin/reports?$top=N</code></td><td>Reports across tenant</td></tr>
+        <tr><td>GET</td><td><code>/admin/capacities</code></td><td>Premium / Fabric capacities</td></tr>
+        <tr><td>GET</td><td><code>/admin/activityevents?startDateTime=…&amp;endDateTime=…</code></td><td>Audit events (same UTC day)</td></tr>
+      </tbody>
+    </table>
+
+    <details>
+      <summary>Sample output snippet</summary>
+      <pre><code>&gt;&gt;&gt; Workspaces (top)
+    GET https://api.powerbi.com/v1.0/myorg/admin/groups?$top=3&amp;$expand=users
+name             id                                   state  type        isOnDedicatedCapacity
+----             --                                   -----  ----        ---------------------
+Sales analytics  a7f1b272-ddd3-4877-9944-d01c520ab6bd Active Workspace                    True
+…
+
+================ API call summary ================
+Label             Status   Ms  Url
+Workspaces (top)  OK       957 …/admin/groups?$top=3&amp;$expand=users
+Datasets (top)    OK       750 …/admin/datasets?$top=3
+Reports (top)     OK       713 …/admin/reports?$top=3
+Capacities        OK      3824 …/admin/capacities
+Activity events   OK      1086 …/admin/activityevents?startDateTime=…</code></pre>
+    </details>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section class="card warn">
+    <h2>🛠️ If you still get 401 / 404</h2>
+    <ol>
+      <li>Re-run <code>az login --tenant &lt;id&gt;</code> (token may have stale claims).</li>
+      <li>In Entra admin center, confirm your account has <strong>Fabric administrator</strong> assigned. If via PIM → <em>activate</em> it.</li>
+      <li>Wait ~15 minutes after a role change, then try again.</li>
+      <li>Decode your token at <a href="https://jwt.ms" target="_blank">jwt.ms</a> – the <code>wids</code> claim should include the Fabric admin role GUID, and <code>aud</code> must be <code>https://analysis.windows.net/powerbi/api</code>.</li>
+      <li>404 from <code>/admin/...</code> is almost always "you weren't authorized" — don't treat it as "endpoint missing".</li>
+    </ol>
+  </section>
+
+  <!-- SP fallback -->
+  <section class="card">
+    <h2>🤖 Service principal mode (unattended scenarios)</h2>
+    <p>For unattended jobs you'll add this on top of the user flow:</p>
+    <ol>
+      <li>Create an Entra app registration. <strong>Do NOT</strong> grant it any Power BI API permissions.</li>
+      <li>Create an Entra security group and add the service principal as a <em>direct</em> member.</li>
+      <li>In <a href="https://app.fabric.microsoft.com/admin-portal/tenantSettings" target="_blank">Fabric Admin portal → Tenant settings → Admin API settings</a>, enable <strong>both</strong>:
+        <ul>
+          <li>Service principals can access <em>read-only</em> admin APIs</li>
+          <li>Service principals can access admin APIs used for <em>updates</em> ← commonly missed</li>
+        </ul>
+        Scope each to the group from step 2.</li>
+      <li>Run the same diagnostic with <code>-Mode SP -TenantId … -ClientId … -ClientSecret …</code>.</li>
+    </ol>
+  </section>
+
+  <!-- Reference links -->
+  <section class="card">
+    <h2>📚 Reference</h2>
+    <ul>
+      <li><a href="https://learn.microsoft.com/rest/api/power-bi/admin" target="_blank">Power BI REST API – Admin reference</a></li>
+      <li><a href="https://learn.microsoft.com/power-bi/enterprise/read-only-apis-service-principal-authentication" target="_blank">Allow service principals to use admin APIs</a></li>
+      <li><a href="https://learn.microsoft.com/fabric/admin/service-admin-portal-admin-api-settings" target="_blank">Fabric Admin portal – Admin API settings</a></li>
+      <li><a href="https://learn.microsoft.com/rest/api/power-bi/admin/get-activity-events" target="_blank">Get Activity Events</a></li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  Self-contained guide — works as a local <code>setup-guide.html</code> file or as a static page.
+</footer>
+
+<script>
+  document.querySelectorAll('pre .copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.parentElement.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const t = btn.textContent;
+        btn.textContent = 'copied!';
+        setTimeout(() => btn.textContent = t, 1200);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
